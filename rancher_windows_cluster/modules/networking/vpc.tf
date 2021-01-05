@@ -59,11 +59,8 @@ resource "aws_main_route_table_association" "main" {
 }
 
 resource "aws_vpc_dhcp_options" "main" {
-  domain_name          = var.vpc_domain_name
-  domain_name_servers  = ["127.0.0.1", "10.0.0.2"]
-  ntp_servers          = ["127.0.0.1"]
-  netbios_name_servers = ["127.0.0.1"]
-  netbios_node_type    = 2
+  domain_name         = var.vpc_domain_name
+  domain_name_servers = ["8.8.8.8", "8.8.4.4", "10.0.0.2"]
 
   tags = {
     Name = var.vpc_name
