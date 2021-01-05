@@ -1,16 +1,18 @@
 output "vpc_id" {
-  value = var.vpc_id
+  value = aws_vpc.main.id
 }
 
-output "subnet_id" {
-#  value = [data.aws_subnet_ids.selected.ids]
-  value = var.subnet_id
+output "subnet_ids" {
+  value = [
+    aws_subnet.a.id,
+    aws_subnet.b.id,
+    aws_subnet.c.id,
+  ]
 }
 
-output "security_group_id" {
-  value = var.sg_id
-}
-
-output "sn_cidr_block" {
-  value = var.subnet_cidr_block
+output "security_group_ids" {
+  value = [
+    aws_security_group.all.id,
+    aws_default_security_group.default.id,
+  ]
 }

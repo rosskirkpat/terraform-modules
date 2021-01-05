@@ -1,22 +1,16 @@
 # Configure the AWS Provider
 
 provider "aws" {
-  access_key = var.aws_access_key
-  secret_key = var.aws_secret_key
-  region     = var.aws_region
+  profile = "default"
+  region  = var.aws_region
 }
 
 # Load in the modules
-
 module "networking" {
   source = "./modules/networking"
 
-  vpc_id = var.vpc_id
-  vpc_name = var.vpc_name
-  sg_id = var.sg_id
-  subnet_id = var.subnet_id
-  subnet_cidr_block = var.subnet_cidr_block
-  subnet_tag_name = var.subnet_tag_name
+  vpc_name        = var.vpc_name
+  vpc_domain_name = var.vpc_domain_name
 }
 
 module "ami" {
@@ -25,15 +19,15 @@ module "ami" {
 
 # Configure the Rancher2 provider
 provider "rancher2" {
-  api_url    = var.rancher_api_endpoint
-  token_key  = var.rancher_api_token
-  insecure = true
+  api_url   = var.rancher_api_endpoint
+  token_key = var.rancher_api_token
+  insecure  = true
 }
 
 
 ################################## Rancher
 resource "rancher2_cluster" "windows_cluster" {
-  name = var.rancher_cluster_name
+  name        = var.rancher_cluster_name
   description = "Custom Rancher Windows Cluster with Monitoring"
   rke_config {
     # cloud_provider {
@@ -46,41 +40,38 @@ resource "rancher2_cluster" "windows_cluster" {
       options = {
         "flannel_backend_port" = 4789
         "flannel_backend_type" = "vxlan"
-        "flannel_backend_vni" = 4096
+        "flannel_backend_vni"  = 4096
       }
     }
     services {
       etcd {
-        creation = "6h"
+        creation  = "6h"
         retention = "24h"
       }
     }
   }
   enable_cluster_monitoring = true
-  windows_prefered_cluster = true
-
-
+  windows_prefered_cluster  = true
 }
 
 resource "aws_instance" "linux_master" {
-  count = var.num_linux_master
+  count = var.instances["linux_master"].count
   tags = {
-    Name        = "var.prefix-master-${count.index}"
+    Name        = "${var.prefix}-master-${count.index}"
     Owner       = var.owner
     DoNotDelete = "true"
   }
 
   key_name                    = var.aws_key_name
   ami                         = module.ami.ubuntu-18_04
-  instance_type		            = var.linux_master_instance_type
+  instance_type               = var.instances["linux_master"].type
   associate_public_ip_address = "true"
-  availability_zone           = var.availability_zone
-  subnet_id                   = module.networking.subnet_id
-  vpc_security_group_ids      = [module.networking.security_group_id]
-  user_data                   = file(var.userdata_linux_file)
+  subnet_id                   = module.networking.subnet_ids[0]
+  vpc_security_group_ids      = module.networking.security_group_ids
+  user_data                   = file(var.instances["linux_master"].userdata_file)
 
   root_block_device {
-    volume_size = var.linux_master_volume_size
+    volume_size = var.instances["linux_master"].volume_size
   }
 
   credit_specification {
@@ -90,7 +81,7 @@ resource "aws_instance" "linux_master" {
   connection {
     type        = "ssh"
     host        = self.public_ip
-    user        = var.ssh_user_linux
+    user        = var.instances["linux_master"].ssh_user
     private_key = file(var.private_key_path)
   }
 
@@ -103,24 +94,23 @@ resource "aws_instance" "linux_master" {
 }
 
 resource "aws_instance" "linux_worker" {
-  count = var.num_linux_worker
+  count = var.instances["linux_worker"].count
   tags = {
-    Name        = "var.prefix-worker-${count.index}"
+    Name        = "${var.prefix}-worker-${count.index}"
     Owner       = var.owner
     DoNotDelete = "true"
   }
 
   key_name                    = var.aws_key_name
   ami                         = module.ami.ubuntu-18_04
-  instance_type		            = var.linux_worker_instance_type
+  instance_type               = var.instances["linux_worker"].type
   associate_public_ip_address = "true"
-  availability_zone           = var.availability_zone
-  subnet_id                   = module.networking.subnet_id
-  vpc_security_group_ids      = [module.networking.security_group_id]
-  user_data                   = file(var.userdata_linux_file)
+  subnet_id                   = module.networking.subnet_ids[1]
+  vpc_security_group_ids      = module.networking.security_group_ids
+  user_data                   = file(var.instances["linux_worker"].userdata_file)
 
   root_block_device {
-    volume_size = var.linux_worker_volume_size
+    volume_size = var.instances["linux_worker"].volume_size
   }
 
   credit_specification {
@@ -130,7 +120,7 @@ resource "aws_instance" "linux_worker" {
   connection {
     type        = "ssh"
     host        = self.public_ip
-    user        = var.ssh_user_linux
+    user        = var.instances["linux_worker"].ssh_user
     private_key = file(var.private_key_path)
   }
 
@@ -142,25 +132,24 @@ resource "aws_instance" "linux_worker" {
   }
 }
 resource "aws_instance" "windows_worker" {
-  count = var.num_windows_worker
+  count = var.instances["windows_worker"].count
   tags = {
-    Name        = "var.prefix-win-${count.index}"
+    Name        = "${var.prefix}-win-${count.index}"
     Owner       = var.owner
     DoNotDelete = "true"
   }
 
   key_name                    = var.aws_key_name
   ami                         = module.ami.windows-2019
-  instance_type		            = var.windows_worker_instance_type
+  instance_type               = var.instances["windows_worker"].type
   associate_public_ip_address = "true"
-  availability_zone           = var.availability_zone
-  subnet_id                   = module.networking.subnet_id
-  vpc_security_group_ids      = [module.networking.security_group_id]
+  subnet_id                   = module.networking.subnet_ids[2]
+  vpc_security_group_ids      = module.networking.security_group_ids
   get_password_data           = "true"
-  user_data                   = file(var.userdata_windows_file)
+  user_data                   = file(var.instances["windows_worker"].userdata_file)
 
   root_block_device {
-    volume_size = var.windows_worker_volume_size
+    volume_size = var.instances["windows_worker"].volume_size
   }
 
   credit_specification {
@@ -168,11 +157,11 @@ resource "aws_instance" "windows_worker" {
   }
 
   connection {
-    type     = "ssh"
-    user     = var.ssh_user_windows
-    password = rsadecrypt(self.password_data, file(var.private_key_path))
-    host     = self.public_ip  
-    script_path = "/Windows/Temp/terraform_%RAND%.bat"    
+    type        = "ssh"
+    user        = var.instances["windows_worker"].ssh_user
+    password    = rsadecrypt(self.password_data, file(var.private_key_path))
+    host        = self.public_ip
+    script_path = "/Windows/Temp/terraform_%RAND%.bat"
   }
 
   provisioner "remote-exec" {
@@ -183,6 +172,6 @@ resource "aws_instance" "windows_worker" {
 }
 
 data "template_file" "decrypted_keys" {
-  count = length(aws_instance.windows_worker)
+  count    = length(aws_instance.windows_worker)
   template = rsadecrypt(element(aws_instance.windows_worker.*.password_data, count.index), file(var.private_key_path))
 }

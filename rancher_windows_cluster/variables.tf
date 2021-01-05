@@ -1,21 +1,7 @@
-variable "aws_access_key" {
-  type        = string
-  description = "AWS access key used to create infrastructure"
-}
-
-variable "aws_secret_key" {
-  type        = string
-  description = "AWS secret key used to create AWS infrastructure"
-}
-
 variable "aws_region" {
   type        = string
   description = "AWS region used for all resources"
-}
-
-variable "availability_zone" {
-  type        = string
-  description = "AWS availability zone used for all instances"
+  default     = "us-west-2"
 }
 
 variable "aws_key_name" {
@@ -23,97 +9,67 @@ variable "aws_key_name" {
   description = "AWS Key used for all resources"
 }
 
-variable "linux_master_instance_type" {
-  type        = string
-  description = "Instance type used for all Rancher cp/etc instances"
-}
-
-variable "linux_worker_instance_type" {
-  type        = string
-  description = "Instance type used for all Rancher Linux worker instances"
-}
-
-variable "windows_worker_instance_type" {
-  type        = string
-  description = "Instance type used for all Rancher Windows worker instances"
-}
-
-variable "num_linux_master" {
-  type        = string
-  description = "Number of Rancher Linux Master (etcd and controlplane role) nodes to provision" 
-  default     = "3"
-}
-
-variable "num_linux_worker" {
-  type        = string
-  description = "Number of Rancher Linux Worker nodes to provision" 
-  default     = "1"
-}
-
-variable "num_windows_worker" {
-  type        = string
-  description = "Number of Rancher Windows worker nodes to provision" 
-  default     = "1"
-}
-
-variable "owner" {
-  type        = string
-  description = "Owner name for AWS instances"
-}
-
-variable "prefix" {
-  type        = string
-  description = "Owner name for AWS instances"
-}
-
 variable "private_key_path" {
   type        = string
   description = "local private key path for AWS key used to ssh to linux and decrypt windows passwords"
 }
 
-variable "ssh_user_linux" {
+variable "vpc_name" {
+  description = "aws vpc name"
+}
+
+variable "vpc_domain_name" {
+  description = "AWS VPC Domain Names, if empty AWS will auto-create"
+  default     = ""
+}
+
+variable "owner" {
   type        = string
-  description = "ssh user for linux aws instances"
-  default     = "ubuntu"
+  description = "Owner tag value for AWS instances"
 }
 
-variable "ssh_user_windows" {
+variable "prefix" {
   type        = string
-  description = "ssh user for windows aws instances"
-  default     = "administrator"
-}
-
-variable "userdata_linux_file" {
-  type        = string
-  description = "path to local userdata file for linux aws instances"
-  default     = "userdata_linux.txt"
-}
-
-variable "userdata_windows_file" {
-  type        = string
-  description = "path to local userdata file for windows aws instances"
-  default     = "userdata_windows.txt"
+  description = "Prefix for Name tag of instances"
+  default     = ""
 }
 
 
-variable "linux_master_volume_size" {
-    description = "linux master aws root block device volume size in GB"
-    default = 50
+#ec2 instances
+variable "instances" {
+  type = map(object({
+    count         = number
+    type          = string
+    ssh_user      = string
+    volume_size   = number
+    userdata_file = string
+  }))
+  default = {
+    linux_master = {
+      count         = 1
+      type          = "m5.xlarge"
+      ssh_user      = "ubuntu"
+      volume_size   = 50
+      userdata_file = "./files/userdata_linux.txt"
+    }
+    linux_worker = {
+      count         = 1
+      type          = "m5.large"
+      ssh_user      = "ubuntu"
+      volume_size   = 50
+      userdata_file = "./files/userdata_linux.txt"
+    }
+    windows_worker = {
+      count         = 1
+      type          = "m5.xlarge"
+      ssh_user      = "administrator"
+      volume_size   = 150
+      userdata_file = "./files/userdata_windows.txt"
+    }
+  }
 }
-
-variable "linux_worker_volume_size" {
-    description = "linux worker aws root block device volume size in GB"
-    default = 50
-}
-
-variable "windows_worker_volume_size" {
-    description = "windows worker aws root block device volume size in GB"
-    default = 50
-}
-
 
 # rancher2 provider variables
-
 variable "rancher_api_endpoint" {
   type        = string
   description = "Endpoint for the Rancher API"
@@ -127,31 +83,4 @@ variable "rancher_api_token" {
 variable "rancher_cluster_name" {
   type        = string
   description = "Name of the rancher cluster that's being created"
-}
-
-
-# networking
-
-variable "vpc_id" {
-  description = "vpc id for all resources"
-}
-
-variable "vpc_name" {
-  description = "aws vpc name"
-}
-
-variable "sg_id" {
-  description = "aws security group ID"
-}
-
-variable "subnet_id" {
-  description = "aws security group ID"
-}
-
-variable "subnet_cidr_block" {
-  description = "aws subnet cidr block"
-}
-
-variable "subnet_tag_name" {
-  description = "name of the aws subnet"
 }
