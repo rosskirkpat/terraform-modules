@@ -1,2 +1,6 @@
+.idea
 *.auto.tfvars
 *.pem
+*.tfstate
+*.tfstate.*
+.terraform*
