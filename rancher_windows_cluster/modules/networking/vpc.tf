@@ -7,6 +7,7 @@ resource "aws_vpc" "main" {
   enable_dns_hostnames = true
   tags = {
     Name = var.vpc_name
+    "kubernetes.io/cluster/${var.cluster_id}" : "owned"
   }
 }
 
@@ -17,6 +18,7 @@ resource "aws_subnet" "a" {
   availability_zone       = data.aws_availability_zones.available.names[0]
   tags = {
     Name = var.vpc_name
+    "kubernetes.io/cluster/${var.cluster_id}" : "owned"
   }
 }
 
@@ -27,6 +29,7 @@ resource "aws_subnet" "b" {
   availability_zone       = data.aws_availability_zones.available.names[1]
   tags = {
     Name = var.vpc_name
+    "kubernetes.io/cluster/${var.cluster_id}" : "owned"
   }
 }
 
@@ -37,6 +40,7 @@ resource "aws_subnet" "c" {
   availability_zone       = data.aws_availability_zones.available.names[2]
   tags = {
     Name = var.vpc_name
+    "kubernetes.io/cluster/${var.cluster_id}" : "owned"
   }
 }
 

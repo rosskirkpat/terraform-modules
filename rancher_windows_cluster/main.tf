@@ -7,8 +7,8 @@ provider "aws" {
 
 # Load in the modules
 module "networking" {
-  source = "./modules/networking"
-
+  source          = "./modules/networking"
+  cluster_id      = var.rancher_cluster_name
   vpc_name        = var.vpc_name
   vpc_domain_name = var.vpc_domain_name
 }
@@ -24,17 +24,14 @@ provider "rancher2" {
   insecure  = true
 }
 
-
 ################################## Rancher
 resource "rancher2_cluster" "windows_cluster" {
   name        = var.rancher_cluster_name
   description = "Custom Rancher Windows Cluster with Monitoring"
   rke_config {
-    # cloud_provider {
-    # # aws_cloud_provider {
-    #   name = "aws"
-    #   # }
-    # }
+    cloud_provider {
+      name = "aws"
+    }
     network {
       plugin = "flannel"
       options = {
@@ -60,8 +57,10 @@ resource "aws_instance" "linux_master" {
     Name        = "${var.prefix}-master-${count.index}"
     Owner       = var.owner
     DoNotDelete = "true"
+    "kubernetes.io/cluster/${var.rancher_cluster_name}" : "owned"
   }
 
+  iam_instance_profile        = var.aws_profile_name
   key_name                    = var.aws_key_name
   ami                         = module.ami.ubuntu-18_04
   instance_type               = var.instances["linux_master"].type
@@ -99,8 +98,10 @@ resource "aws_instance" "linux_worker" {
     Name        = "${var.prefix}-worker-${count.index}"
     Owner       = var.owner
     DoNotDelete = "true"
+    "kubernetes.io/cluster/${var.rancher_cluster_name}" : "owned"
   }
 
+  iam_instance_profile        = var.aws_profile_name
   key_name                    = var.aws_key_name
   ami                         = module.ami.ubuntu-18_04
   instance_type               = var.instances["linux_worker"].type
@@ -137,8 +138,10 @@ resource "aws_instance" "windows_worker" {
     Name        = "${var.prefix}-win-${count.index}"
     Owner       = var.owner
     DoNotDelete = "true"
+    "kubernetes.io/cluster/${var.rancher_cluster_name}" : "owned"
   }
 
+  iam_instance_profile        = var.aws_profile_name
   key_name                    = var.aws_key_name
   ami                         = module.ami.windows-2019
   instance_type               = var.instances["windows_worker"].type
