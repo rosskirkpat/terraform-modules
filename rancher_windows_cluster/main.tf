@@ -1,16 +1,22 @@
 # Configure the AWS Provider
-
 provider "aws" {
-  profile = "default"
-  region  = var.aws_region
+  access_key = var.aws_access_key
+  secret_key = var.aws_secret_key
+  region     = var.aws_region
+  default_tags {
+    tags = {
+      Owner       = var.owner
+      DoNotDelete = "true"
+    }
+  }
 }
 
 # Load in the modules
 module "networking" {
-  source          = "./modules/networking"
-  cluster_id      = var.rancher_cluster_name
-  vpc_name        = var.vpc_name
-  vpc_domain_name = var.vpc_domain_name
+  source = "./modules/networking"
+  vpc_name = var.vpc_name
+  sg_name  = var.sg_name
+  owner    = var.owner
 }
 
 module "ami" {
@@ -19,162 +25,102 @@ module "ami" {
 
 # Configure the Rancher2 provider
 provider "rancher2" {
-  api_url   = var.rancher_api_endpoint
-  token_key = var.rancher_api_token
-  insecure  = true
+  api_url    = var.rancher_api_endpoint
+  token_key  = var.rancher_api_token
+  insecure = true
 }
 
-################################## Rancher
-resource "rancher2_cluster" "windows_cluster" {
-  name        = var.rancher_cluster_name
-  description = "Custom Rancher Windows Cluster with Monitoring"
-  rke_config {
-    cloud_provider {
-      name = "aws"
-    }
-    network {
-      plugin = "flannel"
-      options = {
-        "flannel_backend_port" = 4789
-        "flannel_backend_type" = "vxlan"
-        "flannel_backend_vni"  = 4096
-      }
-    }
-    services {
-      etcd {
-        creation  = "6h"
-        retention = "24h"
-      }
-    }
-  }
-  enable_cluster_monitoring = true
-  windows_prefered_cluster  = true
+
+resource "random_integer" "cluster_name_append" {
+  min = 1
+  max = 99999
 }
+################################## Rancher
+resource "rancher2_cluster_v2" "rke2_win_cluster" {
+  name = "${var.rancher_cluster_name}${random_integer.cluster_name_append.result}"
+  # description = "RKE2 Windows Cluster"
+  fleet_namespace = "fleet-default"
+  kubernetes_version = "v1.21.4+rke2r3"
+  }
 
 resource "aws_instance" "linux_master" {
-  count = var.instances["linux_master"].count
+  count = var.instances.linux_master.count
   tags = {
     Name        = "${var.prefix}-master-${count.index}"
     Owner       = var.owner
     DoNotDelete = "true"
-    "kubernetes.io/cluster/${var.rancher_cluster_name}" : "owned"
   }
 
-  iam_instance_profile        = var.aws_profile_name
   key_name                    = var.aws_key_name
-  ami                         = module.ami.ubuntu-18_04
-  instance_type               = var.instances["linux_master"].type
+  ami                         = module.ami.ubuntu-20_04
+  instance_type               = var.instances.linux_master.type
   associate_public_ip_address = "true"
   subnet_id                   = module.networking.subnet_ids[0]
-  vpc_security_group_ids      = module.networking.security_group_ids
-  user_data                   = file(var.instances["linux_master"].userdata_file)
+  vpc_security_group_ids      = module.networking.target_sg
+  user_data                   = base64encode(templatefile("files/user-data-linux.yml", { cluster_registration = format("%s%s","${rancher2_cluster_v2.rke2_win_cluster.cluster_registration_token[0].insecure_node_command}"," --etcd --controlplane") }))
 
   root_block_device {
-    volume_size = var.instances["linux_master"].volume_size
+    volume_size = var.instances.linux_master.volume_size
   }
 
   credit_specification {
     cpu_credits = "standard"
-  }
-
-  connection {
-    type        = "ssh"
-    host        = self.public_ip
-    user        = var.instances["linux_master"].ssh_user
-    private_key = file(var.private_key_path)
-  }
-
-  provisioner "remote-exec" {
-    inline = [
-      "/bin/bash -c \"timeout 300 sed '/finished-user-data/q' <(tail -f /var/log/cloud-init-output.log)\"",
-      "${rancher2_cluster.windows_cluster.cluster_registration_token.0.node_command} --etcd --controlplane"
-    ]
   }
 }
 
 resource "aws_instance" "linux_worker" {
-  count = var.instances["linux_worker"].count
+  count = var.instances.linux_worker.count
   tags = {
     Name        = "${var.prefix}-worker-${count.index}"
     Owner       = var.owner
     DoNotDelete = "true"
-    "kubernetes.io/cluster/${var.rancher_cluster_name}" : "owned"
   }
 
-  iam_instance_profile        = var.aws_profile_name
   key_name                    = var.aws_key_name
-  ami                         = module.ami.ubuntu-18_04
-  instance_type               = var.instances["linux_worker"].type
+  ami                         = module.ami.ubuntu-20_04
+  instance_type		            = var.instances.linux_worker.type
   associate_public_ip_address = "true"
-  subnet_id                   = module.networking.subnet_ids[1]
-  vpc_security_group_ids      = module.networking.security_group_ids
-  user_data                   = file(var.instances["linux_worker"].userdata_file)
+  subnet_id                   = module.networking.subnet_ids[0]
+  vpc_security_group_ids      = module.networking.target_sg
+  user_data                   = base64encode(templatefile("files/user-data-linux.yml", { cluster_registration = format("%s%s","${rancher2_cluster_v2.rke2_win_cluster.cluster_registration_token[0].insecure_node_command}"," --worker") }))
 
   root_block_device {
-    volume_size = var.instances["linux_worker"].volume_size
+    volume_size = var.instances.linux_worker.volume_size
   }
 
   credit_specification {
     cpu_credits = "standard"
   }
-
-  connection {
-    type        = "ssh"
-    host        = self.public_ip
-    user        = var.instances["linux_worker"].ssh_user
-    private_key = file(var.private_key_path)
-  }
-
-  provisioner "remote-exec" {
-    inline = [
-      "/bin/bash -c \"timeout 300 sed '/finished-user-data/q' <(tail -f /var/log/cloud-init-output.log)\"",
-      "${rancher2_cluster.windows_cluster.cluster_registration_token.0.node_command} --worker"
-    ]
-  }
 }
+
 resource "aws_instance" "windows_worker" {
-  count = var.instances["windows_worker"].count
+  count = var.instances.windows_worker.count
   tags = {
     Name        = "${var.prefix}-win-${count.index}"
     Owner       = var.owner
     DoNotDelete = "true"
-    "kubernetes.io/cluster/${var.rancher_cluster_name}" : "owned"
   }
 
-  iam_instance_profile        = var.aws_profile_name
   key_name                    = var.aws_key_name
   ami                         = module.ami.windows-2019
-  instance_type               = var.instances["windows_worker"].type
+  instance_type		            = var.instances.windows_worker.type
   associate_public_ip_address = "true"
-  subnet_id                   = module.networking.subnet_ids[2]
-  vpc_security_group_ids      = module.networking.security_group_ids
+  subnet_id                   = module.networking.subnet_ids[0]
+  vpc_security_group_ids      = module.networking.target_sg
   get_password_data           = "true"
-  user_data                   = file(var.instances["windows_worker"].userdata_file)
+  user_data                   = base64encode(templatefile("files/user-data-windows.yml", { cluster_registration = format("%s","${rancher2_cluster_v2.rke2_win_cluster.cluster_registration_token[0].insecure_windows_node_command}") }))
+  # user_data                   = base64encode(templatefile("files/user-data-windows.yml", { cluster_registration = format("%s","${rancher2_cluster_v2.rke2_win_cluster.cluster_registration_token[0].insecure_windows_node_command}"), api_endpoint = "${var.rancher_api_endpoint}" }))
 
   root_block_device {
-    volume_size = var.instances["windows_worker"].volume_size
+    volume_size = var.instances.windows_worker.volume_size
   }
 
   credit_specification {
     cpu_credits = "standard"
   }
-
-  connection {
-    type        = "ssh"
-    user        = var.instances["windows_worker"].ssh_user
-    password    = rsadecrypt(self.password_data, file(var.private_key_path))
-    host        = self.public_ip
-    script_path = "/Windows/Temp/terraform_%RAND%.bat"
-  }
-
-  provisioner "remote-exec" {
-    inline = [
-      "${rancher2_cluster.windows_cluster.cluster_registration_token.0.windows_node_command} --worker"
-    ]
-  }
 }
 
 data "template_file" "decrypted_keys" {
-  count    = length(aws_instance.windows_worker)
+  count = length(aws_instance.windows_worker)
   template = rsadecrypt(element(aws_instance.windows_worker.*.password_data, count.index), file(var.private_key_path))
 }

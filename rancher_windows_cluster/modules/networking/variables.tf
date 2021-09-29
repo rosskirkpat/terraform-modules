@@ -2,7 +2,17 @@
 
 variable "vpc_name" {
   description = "aws vpc name"
-  default     = "main"
+  default     = ""
+}
+
+variable "sg_name" {
+  description = "aws security group name"
+  default     = ""
+}
+
+variable "owner" {
+  description = "Owner tag value for AWS instances"
+  default     = ""
 }
 
 variable "vpc_domain_name" {

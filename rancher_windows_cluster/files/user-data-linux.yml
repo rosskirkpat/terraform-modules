@@ -1,0 +1,17 @@
+#cloud-config
+
+users:  
+  - default 
+  - name: rancher    
+    gecos: rancher    
+    primary_group: rancher    
+    sudo: ALL=(ALL) NOPASSWD:ALL    
+    groups: users, admin
+    lock_passwd: false    
+    ssh_authorized_keys:
+      - 
+    
+package_update: true
+
+runcmd:
+  - ${cluster_registration}
