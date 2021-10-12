@@ -2,16 +2,15 @@
 
 users:  
   - default 
-  - name: ross    
-    gecos: ross    
-    primary_group: ross    
+  - name: rancher    
+    gecos: rancher    
+    primary_group: rancher    
     sudo: ALL=(ALL) NOPASSWD:ALL    
     groups: users, admin 
-    ssh_import_id:    
+#     ssh_import_id:    
     lock_passwd: false    
-    ssh_authorized_keys:
-      - 
-      - 
+#     ssh_authorized_keys:
+#       -  
 
 package_update: true
 
@@ -26,4 +25,4 @@ datasource:
 runcmd:
   - touch /tmp/finished-user-data    
 
-final_message: "The system is finally up, after $UPTIME seconds"  
+final_message: "The system is finally up, after $UPTIME seconds"
