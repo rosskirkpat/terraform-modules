@@ -1,0 +1,28 @@
+#cloud-config
+
+users:  
+  - default 
+  - name: rancher    
+    gecos: rancher    
+    primary_group: rancher    
+    sudo: ALL=(ALL) NOPASSWD:ALL    
+    groups: users, admin 
+#     ssh_import_id:    
+    lock_passwd: false    
+#     ssh_authorized_keys:
+#       -  
+
+package_update: true
+
+datasource:
+  Ec2:
+    metadata_urls: ["http://169.254.169.254:80", "http://instance-data:8773"]
+    max_wait: 120
+    timeout: 50
+    apply_full_imds_network_config: true
+
+
+runcmd:
+  - touch /tmp/finished-user-data    
+
+final_message: "The system is finally up, after $UPTIME seconds"

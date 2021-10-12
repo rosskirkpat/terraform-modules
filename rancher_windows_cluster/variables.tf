@@ -11,7 +11,7 @@ variable "aws_key_name" {
 
 variable "aws_profile_name" {
   type    = string
-  default = ""
+  default = null
 }
 variable "private_key_path" {
   type        = string
@@ -19,12 +19,13 @@ variable "private_key_path" {
 }
 
 variable "vpc_name" {
-  description = "aws vpc name"
+  description = "aws vpc name to be created"
+  default = null
 }
 
 variable "vpc_domain_name" {
   description = "AWS VPC Domain Names, if empty AWS will auto-create"
-  default     = ""
+  default     = null
 }
 
 variable "owner" {
@@ -35,9 +36,16 @@ variable "owner" {
 variable "prefix" {
   type        = string
   description = "Prefix for Name tag of instances"
-  default     = ""
+  default     = null
 }
 
+variable "aws_secret_key"{
+  type        = string
+}
+
+variable "aws_access_key"{
+  type        = string
+}
 
 #ec2 instances
 variable "instances" {
@@ -46,29 +54,25 @@ variable "instances" {
     type          = string
     ssh_user      = string
     volume_size   = number
-    userdata_file = string
   }))
   default = {
     linux_master = {
-      count         = 1
+      count         = 3
       type          = "m5.xlarge"
       ssh_user      = "ubuntu"
       volume_size   = 50
-      userdata_file = "./files/userdata_linux.txt"
     }
     linux_worker = {
       count         = 1
       type          = "m5.large"
       ssh_user      = "ubuntu"
       volume_size   = 50
-      userdata_file = "./files/userdata_linux.txt"
     }
     windows_worker = {
       count         = 1
       type          = "m5.xlarge"
       ssh_user      = "administrator"
-      volume_size   = 150
-      userdata_file = "./files/userdata_windows.txt"
+      volume_size   = 100
     }
   }
 }

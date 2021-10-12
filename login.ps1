@@ -15,12 +15,15 @@ $loginParams = @{
 }
 
 $login = ( `
-    Invoke-WebRequest -Header  @{'User-Agent' = ''; 'Accept' = 'application/json'; 'Content-Type' = 'application/json';} `
+    Invoke-WebRequest -Header @{'User-Agent' = '([Microsoft.PowerShell.Commands.PSUserAgent]::InternetExplorer)'; 'Accept' = 'application/json'; 'Content-Type' = 'application/json';} `
     -Uri $server$loginPath `
     -UseBasicParsing `
+    -SkipCertificateCheck `
     -Method POST `
     -Body ($loginParams | ConvertTo-Json) `
 ) | ConvertFrom-Json
 
-Set-Content -Path ./token.auto.tfvars -Value "rancher_api_token = `"$($login.token)`""
-
+Set-Content -Path ./rancher.auto.tfvars -Value @"
+rancher_api_token = `"$($login.token)`"
+rancher_api_endpoint = `"$server`"
+"@

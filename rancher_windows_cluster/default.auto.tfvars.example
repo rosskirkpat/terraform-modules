@@ -1,6 +1,6 @@
 #### Variable definitions
-vpc_name             = "vpc-name"
-vpc_domain_name      = "" #leave blank for aws default
+vpc_name             = ""
+vpc_domain_name      = null #leave blank for aws default
 prefix               = "" #prefix for instance names
 owner                = "" #owner tag value
 aws_region           = "us-west-2"

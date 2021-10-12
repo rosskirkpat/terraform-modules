@@ -2,6 +2,6 @@
 # Install docker
 set -euxo pipefail
 apt-get update
-curl https://releases.rancher.com/install-docker/19.03.sh | sh
+curl https://releases.rancher.com/install-docker/20.10.sh | sh
 usermod -aG docker ubuntu
 touch /tmp/finished-user-data

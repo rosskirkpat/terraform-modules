@@ -4,3 +4,4 @@
 *.tfstate
 *.tfstate.*
 .terraform*
+.archive/*
