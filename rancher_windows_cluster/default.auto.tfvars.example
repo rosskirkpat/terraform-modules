@@ -1,11 +1,9 @@
 #### Variable definitions
-vpc_name             = ""
-vpc_domain_name      = null #leave blank for aws default
-prefix               = "" #prefix for instance names
-owner                = "" #owner tag value
-aws_region           = "us-west-2"
-aws_key_name         = "aws-key-name"
-private_key_path     = "~/.ssh/aws-key-name.pem"
-rancher_api_endpoint = "https://127.0.0.1:8080"
-rancher_cluster_name = "cluster-name"
+vpc_name             = "" # the name of the VPC that you want to create
+vpc_domain_name      = null # leave this set to null for aws default
+prefix               = "" # prefix for instance names
+owner                = "" # owner tag value for AWS to avoid cleanup by cloud custodian
+aws_region           = "us-west-2" # pick your preferred aws region
+rancher_api_endpoint = "" # use login.ps1 to generate
+rancher_cluster_name = "cluster-name" # the name of the rancher cluster that you want to create
 rancher_api_token    = "token-xxxx:<token>" # use login.ps1 to generate

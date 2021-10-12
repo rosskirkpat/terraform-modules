@@ -4,18 +4,9 @@ variable "aws_region" {
   default     = "us-west-2"
 }
 
-variable "aws_key_name" {
-  type        = string
-  description = "AWS Key used for all resources"
-}
-
 variable "aws_profile_name" {
   type    = string
   default = null
-}
-variable "private_key_path" {
-  type        = string
-  description = "local private key path for AWS key used to ssh to linux and decrypt windows passwords"
 }
 
 variable "vpc_name" {
