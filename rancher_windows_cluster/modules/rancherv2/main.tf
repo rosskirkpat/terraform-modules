@@ -77,7 +77,8 @@ provider "helm" {
 provider "rancher2" {
   alias     = "bootstrap"
   insecure  = true
-  api_url   = "https://${var.rancher-hostname}"
+  api_url   = "https://${data.aws_instance.rancher_master[0].public_ip}.nip.io"
+  # api_url   = "https://${var.rancher-hostname}"
   # api_url   = "https://${data.aws_instance.rancher_master.public_ip}.nip.io"
   bootstrap = true
   timeout   = "300s"
@@ -98,7 +99,8 @@ resource "rancher2_bootstrap" "admin" {
 # Provider config for admin
 provider "rancher2" {
   alias     = "admin"
-  api_url   = "https://${var.rancher-hostname}"
+  # api_url   = "https://${var.rancher-hostname}"
+  api_url   = rancher2.bootstrap.api_url
   token_key = rancher2_bootstrap.admin.token
   insecure  = true
 }

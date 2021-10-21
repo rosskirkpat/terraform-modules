@@ -24,5 +24,7 @@ variable "rancher_version" {
 # }
 
 variable "rancher-hostname" {
-  value = "https://${data.aws_instance.rancher_master[0].public_ip}.nip.io"
+  type        = string
+  description = "Rancher server hostname"
+#   default = "https://${data.aws_instance.rancher_master[0].public_ip}.nip.io"
 }
