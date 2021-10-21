@@ -66,7 +66,7 @@ resource "aws_instance" "linux_master" {
   }
 
   key_name                    = aws_key_pair.generated_key.key_name
-  ami                         = module.ami.ubuntu-20_04
+  ami                         = module.ami.leap-15_SP3
   instance_type               = var.instances.linux_master.type
   associate_public_ip_address = "true"
   subnet_id                   = module.aws_vpc_create.subnet_ids[0]
@@ -93,7 +93,7 @@ resource "aws_instance" "linux_worker" {
   }
 
   key_name                    = aws_key_pair.generated_key.key_name
-  ami                         = module.ami.ubuntu-20_04
+  ami                         = module.ami.leap-15_SP3
   instance_type		            = var.instances.linux_worker.type
   associate_public_ip_address = "true"
   subnet_id                   = module.aws_vpc_create.subnet_ids[0]
