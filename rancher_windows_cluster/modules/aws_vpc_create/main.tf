@@ -149,7 +149,7 @@ resource "aws_default_security_group" "sg_default" {
       to_port     = 2380
       protocol    = "tcp"
       # security_groups = [aws_default_security_group.sg_default.id]
-      cidr_blocks      = [aws_vpc.main_vpc.cidr_block]
+      cidr_blocks = [aws_vpc.main_vpc.cidr_block]
       # ipv6_cidr_blocks = [aws_vpc.main_vpc.ipv6_cidr_block]
       self        = true
     }
@@ -159,7 +159,7 @@ resource "aws_default_security_group" "sg_default" {
       to_port     = 6443
       protocol    = "tcp"
       # security_groups = ""
-      cidr_blocks      = [aws_vpc.main_vpc.cidr_block]
+      cidr_blocks = [aws_vpc.main_vpc.cidr_block]
       # ipv6_cidr_blocks = [aws_vpc.main_vpc.ipv6_cidr_block]
       self        = true
     }
@@ -169,7 +169,7 @@ resource "aws_default_security_group" "sg_default" {
       to_port     = 8472
       protocol    = "udp"
       # security_groups = ""
-      cidr_blocks      = [aws_vpc.main_vpc.cidr_block]
+      cidr_blocks = [aws_vpc.main_vpc.cidr_block]
       # ipv6_cidr_blocks = [aws_vpc.main_vpc.ipv6_cidr_block]
       self        = true
     }
@@ -178,7 +178,16 @@ resource "aws_default_security_group" "sg_default" {
       from_port   = 4789
       to_port     = 4789
       protocol    = "udp"
-      cidr_blocks      = [aws_vpc.main_vpc.cidr_block]
+      cidr_blocks = [aws_vpc.main_vpc.cidr_block]
+      # ipv6_cidr_blocks = [aws_vpc.main_vpc.ipv6_cidr_block]
+      self        = true
+    }
+    ingress {
+      description = "Inbound Typha for Calico Felix from cluster nodes"
+      from_port   = 5473
+      to_port     = 5473
+      protocol    = "tcp"
+      cidr_blocks = [aws_vpc.main_vpc.cidr_block]
       # ipv6_cidr_blocks = [aws_vpc.main_vpc.ipv6_cidr_block]
       self        = true
     }
@@ -187,7 +196,7 @@ resource "aws_default_security_group" "sg_default" {
       from_port   = 10250
       to_port     = 10252
       protocol    = "tcp"
-      cidr_blocks      = [aws_vpc.main_vpc.cidr_block]
+      cidr_blocks = [aws_vpc.main_vpc.cidr_block]
       # ipv6_cidr_blocks = [aws_vpc.main_vpc.ipv6_cidr_block]
       self        = true
     }
@@ -196,7 +205,7 @@ resource "aws_default_security_group" "sg_default" {
       from_port   = 9345
       to_port     = 9345
       protocol    = "tcp"
-      cidr_blocks      = [aws_vpc.main_vpc.cidr_block]
+      cidr_blocks = [aws_vpc.main_vpc.cidr_block]
       # ipv6_cidr_blocks = [aws_vpc.main_vpc.ipv6_cidr_block]
       self        = true
     }
@@ -205,7 +214,7 @@ resource "aws_default_security_group" "sg_default" {
       from_port   = 30000
       to_port     = 32767
       protocol    = "tcp"
-      cidr_blocks      = [aws_vpc.main_vpc.cidr_block]
+      cidr_blocks = [aws_vpc.main_vpc.cidr_block]
       # ipv6_cidr_blocks = [aws_vpc.main_vpc.ipv6_cidr_block]
       self        = true
     }
@@ -214,7 +223,7 @@ resource "aws_default_security_group" "sg_default" {
       from_port   = 30000
       to_port     = 32767
       protocol    = "udp"
-      cidr_blocks      = [aws_vpc.main_vpc.cidr_block]
+      cidr_blocks = [aws_vpc.main_vpc.cidr_block]
       # ipv6_cidr_blocks = [aws_vpc.main_vpc.ipv6_cidr_block]
       self        = true
     }
@@ -223,7 +232,7 @@ resource "aws_default_security_group" "sg_default" {
       from_port   = 179
       to_port     = 179
       protocol    = "tcp"
-      cidr_blocks      = [aws_vpc.main_vpc.cidr_block]
+      cidr_blocks = [aws_vpc.main_vpc.cidr_block]
       # ipv6_cidr_blocks = [aws_vpc.main_vpc.ipv6_cidr_block]
       self        = true
     }
@@ -248,16 +257,16 @@ resource "aws_default_security_group" "sg_default" {
       from_port   = 9796
       to_port     = 9796
       protocol    = "tcp"
-      cidr_blocks      = [aws_vpc.main_vpc.cidr_block]
+      cidr_blocks = [aws_vpc.main_vpc.cidr_block]
       # ipv6_cidr_blocks = [aws_vpc.main_vpc.ipv6_cidr_block]
       self        = true
     }
   # egress = [
     egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
     ipv6_cidr_blocks = ["::/0"]
 
   }
