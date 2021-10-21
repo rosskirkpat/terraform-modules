@@ -24,6 +24,31 @@ data "aws_ami" "sles-15_SP3" {
   }
 }
 
+data "aws_ami" "opensuse-leap-15-sp3" {
+  most_recent = true
+  owners      = ["013907871322"] # SUSE
+
+  filter {
+    name   = "name"
+    values = ["opensuse-leap-15-sp3*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  filter {
+    name   = "architecture"
+    values = ["x86_64"]
+  }
+
+  filter {
+    name   = "root-device-type"
+    values = ["ebs"]
+  }
+}
+
 data "aws_ami" "ubuntu-18_04" {
   most_recent = true
   owners      = ["099720109477"]
@@ -122,6 +147,10 @@ data "aws_ami" "windows-2022" {
 output "sles-15_SP3" {
   value = data.aws_ami.sles-15_SP3.id
 }
+
+output "leap-15_SP3" {
+  value = data.aws_ami.opensuse-leap-15-sp3.id
+  }
 
 output "ubuntu-18_04" {
   value = data.aws_ami.ubuntu-18_04.id

@@ -1,3 +1,6 @@
+<!-- TODO -->
+<!-- Automate setup via Powershell -->
+
 ```powershell
 curl.exe -sfLO https://releases.hashicorp.com/terraform/1.0.8/terraform_1.0.8_windows_amd64.zip
 expand-archive terraform_1.0.8_windows_amd64.zip
