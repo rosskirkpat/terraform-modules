@@ -3,17 +3,26 @@ provider "aws" {
   access_key = var.aws_access_key
   secret_key = var.aws_secret_key
   region     = var.aws_region
-  # default_tags {
-  #   tags = {
-  #     Owner       = var.owner
-  #     DoNotDelete = "true"
-  #   }
-  # }
 }
 
 resource "random_integer" "cluster_name_append" {
   min = 1
   max = 99999
+}
+
+resource "tls_private_key" "ssh_key" {
+  algorithm = "RSA"
+  rsa_bits  = 4096
+}
+
+resource "aws_key_pair" "generated_key" {
+  key_name   = "terraform-key-pair-${random_integer.cluster_name_append.result}"
+  public_key = tls_private_key.ssh_key.public_key_openssh
+}
+
+resource "local_file" "pem_file" {
+  filename = "files\\${aws_key_pair.generated_key.key_name}.pem"
+  sensitive_content = tls_private_key.ssh_key.private_key_pem
 }
 
 # Load in the modules
@@ -29,13 +38,18 @@ module "ami" {
   source = "./modules/ami"
 }
 
-# Configure the Rancher2 provider
-provider "rancher2" {
-  api_url    = var.rancher_api_endpoint
-  token_key  = var.rancher_api_token
-  insecure   = true
+module "rancherv2" {
+  source = "./modules/rancherv2"
 }
 
+# Configure the Rancher2 provider
+provider "rancher2" {
+  api_url    = modules.rancherv2.rancher2_url.url
+  token_key  = modules.rancherv2.rancher2_token.token
+  # api_url    = var.rancher_api_endpoint
+  # token_key  = var.rancher_api_token
+  insecure   = true
+}
 resource "rancher2_cluster_v2" "rke2_win_cluster" {
   name               = "${var.rancher_cluster_name}${random_integer.cluster_name_append.result}"
   fleet_namespace    = "fleet-default"
@@ -50,8 +64,8 @@ resource "aws_instance" "linux_master" {
     DoNotDelete = "true"
   }
 
-  key_name                    = var.aws_key_name
-  ami                         = module.ami.ubuntu-20_04
+  key_name                    = aws_key_pair.generated_key.key_name
+  ami                         = module.ami.leap-15_SP3
   instance_type               = var.instances.linux_master.type
   associate_public_ip_address = "true"
   subnet_id                   = module.aws_vpc_create.subnet_ids[0]
@@ -77,8 +91,8 @@ resource "aws_instance" "linux_worker" {
     DoNotDelete = "true"
   }
 
-  key_name                    = var.aws_key_name
-  ami                         = module.ami.ubuntu-20_04
+  key_name                    = aws_key_pair.generated_key.key_name
+  ami                         = module.ami.leap-15_SP3
   instance_type		            = var.instances.linux_worker.type
   associate_public_ip_address = "true"
   subnet_id                   = module.aws_vpc_create.subnet_ids[0]
@@ -103,7 +117,7 @@ resource "aws_instance" "windows_worker" {
     DoNotDelete = "true"
   }
 
-  key_name                    = var.aws_key_name
+  key_name                    = aws_key_pair.generated_key.key_name
   ami                         = module.ami.windows-2019
   instance_type		            = var.instances.windows_worker.type
   associate_public_ip_address = "true"
@@ -124,5 +138,5 @@ resource "aws_instance" "windows_worker" {
 
 data "template_file" "decrypted_keys" {
   count = length(aws_instance.windows_worker)
-  template = rsadecrypt(element(aws_instance.windows_worker.*.password_data, count.index), file(var.private_key_path))
+  template = rsadecrypt(element(aws_instance.windows_worker.*.password_data, count.index), tls_private_key.ssh_key.private_key_pem)
 }
