@@ -26,11 +26,11 @@ data "aws_ami" "sles-15_SP3" {
 
 data "aws_ami" "opensuse-leap-15-sp3" {
   most_recent = true
-  owners      = ["013907871322"] # SUSE
+  owners      = ["679593333241"] # openSUSE
 
   filter {
     name   = "name"
-    values = ["opensuse-leap-15-sp3*"]
+    values = ["openSUSE-Leap-15.3*"]
   }
 
   filter {
