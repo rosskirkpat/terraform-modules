@@ -1,21 +1,12 @@
 variable "aws_region" {
   type        = string
   description = "AWS region used for all resources"
-  default     = "us-west-2"
-}
-
-variable "aws_key_name" {
-  type        = string
-  description = "AWS Key used for all resources"
+  default     = "us-east-1"
 }
 
 variable "aws_profile_name" {
   type    = string
   default = null
-}
-variable "private_key_path" {
-  type        = string
-  description = "local private key path for AWS key used to ssh to linux and decrypt windows passwords"
 }
 
 variable "vpc_name" {
@@ -78,15 +69,15 @@ variable "instances" {
 }
 
 # rancher2 provider variables
-variable "rancher_api_endpoint" {
-  type        = string
-  description = "Endpoint for the Rancher API"
-}
+# variable "rancher_api_endpoint" {
+#   type        = string
+#   description = "Endpoint for the Rancher API"
+# }
 
-variable "rancher_api_token" {
-  type        = string
-  description = "API Token to access the Rancher API"
-}
+# variable "rancher_api_token" {
+#   type        = string
+#   description = "API Token to access the Rancher API"
+# }
 
 variable "rancher_cluster_name" {
   type        = string

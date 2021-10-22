@@ -2,7 +2,7 @@
 ### OUTPUT 
 
 output "rancher2_local_cluster_node_ips" {
-    value = [aws_instance.rancher_master[*].public_ip]
+    value = aws_instance.rancher_master[*].public_ip
 }
 
 output "rancher2_url" {
@@ -40,12 +40,12 @@ output "downstream_cluster" {
       ]
 }
 
-output "downstream_cluster_token" {
-      value = rancher2_cluster_v2.rke2_win_cluster.token
-      depends_on = [
-        rancher2_cluster_v2.rke2_win_cluster
-      ]
-}
+# output "downstream_cluster_token" {
+#       value = rancher2_cluster_v2.rke2_win_cluster.token
+#       depends_on = [
+#         rancher2_cluster_v2.rke2_win_cluster
+#       ]
+# }
 
 output "rke2_cluster_command" {
     value = rancher2_cluster_v2.rke2_win_cluster.cluster_registration_token.0.insecure_node_command
@@ -59,4 +59,9 @@ output "rke2_cluster_windows_command" {
     depends_on = [
       rancher2_cluster_v2.rke2_win_cluster
     ]
+}
+
+output "rancher_kubeconfig" {
+#   value = data.external.rancher_kubeconfig.result 
+    value = sshcommand_command.retrieve_config.result
 }

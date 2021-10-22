@@ -21,7 +21,8 @@ resource "helm_release" "cert_manager" {
 resource "helm_release" "rancher_server" {
   depends_on = [
     helm_release.cert_manager,
-  ]
+    sshcommand_command.retrieve_config
+    ]
 
   repository       = "https://releases.rancher.com/server-charts/stable"
   name             = "rancher"
@@ -33,10 +34,7 @@ resource "helm_release" "rancher_server" {
 
   set {
     name  = "hostname"
-    value = rancher2_bootstrap.admin.url
-    depends_on = [
-      rancher2_bootstrap.admin
-    ]
+    value = "https://${aws_instance.rancher_master[0].public_ip}.nip.io"
   }
 
   set {

@@ -40,21 +40,31 @@ module "ami" {
 
 module "rancherv2" {
   source = "./modules/rancherv2"
+  # vpc_name             = var.vpc_name
+  owner                = var.owner
+  rancher_cluster_name = "${var.rancher_cluster_name}${random_integer.cluster_name_append.result}"
+  # vpc_domain_name      = var.vpc_domain_name
+  prefix               = var.prefix
+  subnet_id            = module.aws_vpc_create.subnet_ids[0]
+  default_sg           = [module.aws_vpc_create.default_security_group_id]
+  # access_key = var.aws_access_key
+  # secret_key = var.aws_secret_key
+  # region     = var.aws_region
 }
 
 # Configure the Rancher2 provider
 provider "rancher2" {
-  api_url    = modules.rancherv2.rancher2_url.url
-  token_key  = modules.rancherv2.rancher2_token.token
+  api_url    = module.rancherv2.rancher2_url
+  token_key  = module.rancherv2.rancher2_token
   # api_url    = var.rancher_api_endpoint
   # token_key  = var.rancher_api_token
   insecure   = true
 }
-resource "rancher2_cluster_v2" "rke2_win_cluster" {
-  name               = "${var.rancher_cluster_name}${random_integer.cluster_name_append.result}"
-  fleet_namespace    = "fleet-default"
-  kubernetes_version = "v1.21.5+rke2r2"
-  }
+# resource "rancher2_cluster_v2" "rke2_win_cluster" {
+#   name               = "${var.rancher_cluster_name}${random_integer.cluster_name_append.result}"
+#   fleet_namespace    = "fleet-default"
+#   kubernetes_version = "v1.21.5+rke2r2"
+#   }
 
 resource "aws_instance" "linux_master" {
   count = var.instances.linux_master.count
@@ -71,7 +81,10 @@ resource "aws_instance" "linux_master" {
   subnet_id                   = module.aws_vpc_create.subnet_ids[0]
   vpc_security_group_ids      = [module.aws_vpc_create.default_security_group_id]
   source_dest_check           = "false"
-  user_data                   = base64encode(templatefile("files/user-data-linux.yml", { cluster_registration = format("%s%s","${rancher2_cluster_v2.rke2_win_cluster.cluster_registration_token[0].insecure_node_command}"," --etcd --controlplane") }))
+  # user_data                   = base64encode(templatefile("files/user-data-linux.yml", { cluster_registration = format("%s%s","${rancher2_cluster_v2.rke2_win_cluster.cluster_registration_token[0].insecure_node_command}"," --etcd --controlplane") }))
+  user_data                   = base64encode(templatefile("files/user-data-linux.yml", { cluster_registration = format("%s%s",module.rancherv2.rke2_cluster_command," --etcd --controlplane") }))
+
+
 
   root_block_device {
     volume_size = var.instances.linux_master.volume_size
@@ -98,7 +111,9 @@ resource "aws_instance" "linux_worker" {
   subnet_id                   = module.aws_vpc_create.subnet_ids[0]
   vpc_security_group_ids      = [module.aws_vpc_create.default_security_group_id]
   source_dest_check           = "false"
-  user_data                   = base64encode(templatefile("files/user-data-linux.yml", { cluster_registration = format("%s%s","${rancher2_cluster_v2.rke2_win_cluster.cluster_registration_token[0].insecure_node_command}"," --worker") }))
+  # user_data                   = base64encode(templatefile("files/user-data-linux.yml", { cluster_registration = format("%s%s","${rancher2_cluster_v2.rke2_win_cluster.cluster_registration_token[0].insecure_node_command}"," --worker") }))
+  user_data                   = base64encode(templatefile("files/user-data-linux.yml", { cluster_registration = format("%s%s",module.rancherv2.rke2_cluster_command," --worker") }))
+
 
   root_block_device {
     volume_size = var.instances.linux_worker.volume_size
@@ -125,7 +140,8 @@ resource "aws_instance" "windows_worker" {
   vpc_security_group_ids      = [module.aws_vpc_create.default_security_group_id]
   get_password_data           = "true"
   source_dest_check           = "false"
-  user_data                   = base64encode(templatefile("files/user-data-windows.yml", { cluster_registration = format("%s","${rancher2_cluster_v2.rke2_win_cluster.cluster_registration_token[0].insecure_windows_node_command}") }))
+  # user_data                   = base64encode(templatefile("files/user-data-windows.yml", { cluster_registration = format("%s","${rancher2_cluster_v2.rke2_win_cluster.cluster_registration_token[0].insecure_windows_node_command}") }))
+  user_data                   =  base64encode(templatefile("files/user-data-windows.yml", { cluster_registration = format("%s",module.rancherv2.rke2_cluster_windows_command)}))
 
   root_block_device {
     volume_size = var.instances.windows_worker.volume_size

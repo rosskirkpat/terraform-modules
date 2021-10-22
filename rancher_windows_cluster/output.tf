@@ -14,6 +14,6 @@ output "linux_worker_public_ips" {
   value = aws_instance.linux_worker[*].public_ip
 }
 
-output "cluster_id" {
-  value = rancher2_cluster_v2.rke2_win_cluster.id
-}
+# output "cluster_id" {
+#   value = rancher2_cluster_v2.rke2_win_cluster.id
+# }
