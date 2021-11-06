@@ -61,8 +61,13 @@ resource "tls_private_key" "rancher_ssh_key" {
 }
 
 resource "aws_key_pair" "generated_rancher_key" {
-  key_name   = "terraform-rancher-local-cluster-key-pair-${random_integer.local_cluster_name_append.result}"
+  key_name   = "tf-rancher-local-key-${random_integer.local_cluster_name_append.result}"
   public_key = tls_private_key.rancher_ssh_key.public_key_openssh
+}
+
+resource "local_file" "openssh_pub_key"{
+  filename = format("%s/%s", "${path.root}/keys", "${aws_key_pair.generated_rancher_key.key_name}.pub")
+  content = tls_private_key.rancher_ssh_key.public_key_openssh
 }
 
 resource "local_file" "rancher_pem_file" {

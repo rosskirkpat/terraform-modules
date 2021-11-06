@@ -46,6 +46,9 @@ module "aws_lb" {
   source = "./modules/aws_lb"
 }
 
+module "aws_ec2" {
+  source = "./modules/aws_ec2"
+}
 
 module "aws_r53" {
   source = "./modules/aws_r53"
