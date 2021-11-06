@@ -1,7 +1,17 @@
+data "template_file" "cloud-config" {
+  template = <<YAML
 #cloud-config
 
 locale: "en_US.UTF-8"
 timezone: "America/New_York"
+
+package_update: true
+
+packages:
+  - nano
+  - net-tools
+  - bash
+  - jq
 
 users:
   - default
@@ -12,14 +22,8 @@ users:
     groups: users, admin
     lock_passwd: false    
     ssh_authorized_keys:
-      - ${public_key}
-      
-package_update: true
-packages:
-  - nano
-  - net-tools
-  - bash
-    
+      - "${tls_private_key.rancher_ssh_key.public_key_openssh}"
+
 write_files:
   - path: /run/setup-environment.sh
     permissions: '0755'
@@ -70,29 +74,34 @@ write_files:
       echo getting public ipv4 from AWS instance metadata...
       echo LOCAL_IPV4=$(get_local_ip) >> $ENV
 
+  - path: /etc/environment
+    append: true
+    content: |
+      PUBLIC_IPV4=$(cloud-init query ds.meta_data.public_ipv4)
+      LOCAL_IPV4=$(cloud-init query ds.meta_data.local_ipv4)
+
   - path: /run/set-k3s-config.sh
     permissions: '0755'
     content: |
       #!/bin/bash
-      source /run/setup-environment.sh
-      source /etc/environment
-      mkdir -p /etc/rancher/k3s/
-      touch /etc/rancher/k3s/config.yaml
       cat <<'EOF' | sed -e "s/PUBLIC/"$PUBLIC_IPV4"/g" -e "s/LOCAL/"$LOCAL_IPV4"/g" > /etc/rancher/k3s/config.yaml
       write-kubeconfig-mode: "0644"
       node-ip: "LOCAL"
       tls-san:
         - "PUBLIC.nip.io"
         - "PUBLIC"
-      token: "${k3s_token}"
-      agent-token: "${k3s_agent_token}"
+      token: "${random_password.k3s_token.result}"
+      agent-token:"${random_password.k3s_agent_token.result}"
       disable-cloud-controller: true
       EOF
 
 runcmd:
-  - bash /run/set-k3s-config.sh
-  - sudo systemctl disable --now firewalld
-  - curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION=${k3s_version} sh \-
+  - [ sh, -c "/run/setup-environment.sh" ]
+  - [ sh, -c "/run/set-k3s-config.sh" ]
+  - [ sh, -c, "sudo systemctl disable --now firewalld" ]
+  - curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="${var.rancher_kubernetes_version}" sh -
+  - echo 'This instance was provisioned by Terraform.' >> /etc/motd
   
-
 final_message: "The system is finally up, after $UPTIME seconds"
+YAML
+}

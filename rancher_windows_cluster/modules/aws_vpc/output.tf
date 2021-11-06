@@ -29,14 +29,13 @@ output "subnet_ids" {
   ]
 }
 
-output "vpc_default_security_group_id" {
-  value = aws_default_security_group.sg_default.id
+output "default_vpc_security_group_id" {
+  value = aws_default_security_group.vpc_sg_default.id
 }
 
 output "open_security_group_id" {
   value = aws_security_group.sg_all.id
 }
-
 
 output "default_security_group_id" {
   value = aws_security_group.sg_default.id

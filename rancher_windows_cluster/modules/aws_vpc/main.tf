@@ -122,7 +122,7 @@ resource "aws_security_group" "sg_all" {
   }
 }
 
-resource "aws_default_security_group" "sg_default" {
+resource "aws_default_security_group" "vpc_sg_default" {
   vpc_id = aws_vpc.main_vpc.id
 
   # ingress = [ 
@@ -132,6 +132,7 @@ resource "aws_default_security_group" "sg_default" {
       to_port     = 80
       protocol    = "tcp"
       cidr_blocks = ["0.0.0.0/0"]
+      ipv6_cidr_blocks = ["::/0"]
       # security_groups = [aws_default_security_group.sg_default.id]
       # ipv6_cidr_blocks = [aws_vpc.main_vpc.ipv6_cidr_block]
     }
@@ -141,6 +142,7 @@ resource "aws_default_security_group" "sg_default" {
       to_port     = 443
       protocol    = "tcp"
       cidr_blocks = ["0.0.0.0/0"]
+      ipv6_cidr_blocks = ["::/0"]
       # security_groups = [aws_default_security_group.sg_default.id]
     }
     ingress {
@@ -149,7 +151,7 @@ resource "aws_default_security_group" "sg_default" {
       to_port     = 2380
       protocol    = "tcp"
       # security_groups = [aws_default_security_group.sg_default.id]
-      cidr_blocks      = [aws_vpc.main_vpc.cidr_block]
+      cidr_blocks = [aws_vpc.main_vpc.cidr_block]
       # ipv6_cidr_blocks = [aws_vpc.main_vpc.ipv6_cidr_block]
       self        = true
     }
@@ -159,7 +161,7 @@ resource "aws_default_security_group" "sg_default" {
       to_port     = 6443
       protocol    = "tcp"
       # security_groups = ""
-      cidr_blocks      = [aws_vpc.main_vpc.cidr_block]
+      cidr_blocks = [aws_vpc.main_vpc.cidr_block]
       # ipv6_cidr_blocks = [aws_vpc.main_vpc.ipv6_cidr_block]
       self        = true
     }
@@ -169,7 +171,7 @@ resource "aws_default_security_group" "sg_default" {
       to_port     = 8472
       protocol    = "udp"
       # security_groups = ""
-      cidr_blocks      = [aws_vpc.main_vpc.cidr_block]
+      cidr_blocks = [aws_vpc.main_vpc.cidr_block]
       # ipv6_cidr_blocks = [aws_vpc.main_vpc.ipv6_cidr_block]
       self        = true
     }
@@ -178,7 +180,16 @@ resource "aws_default_security_group" "sg_default" {
       from_port   = 4789
       to_port     = 4789
       protocol    = "udp"
-      cidr_blocks      = [aws_vpc.main_vpc.cidr_block]
+      cidr_blocks = [aws_vpc.main_vpc.cidr_block]
+      # ipv6_cidr_blocks = [aws_vpc.main_vpc.ipv6_cidr_block]
+      self        = true
+    }
+    ingress {
+      description = "Inbound Typha for Calico Felix from cluster nodes"
+      from_port   = 5473
+      to_port     = 5473
+      protocol    = "tcp"
+      cidr_blocks = [aws_vpc.main_vpc.cidr_block]
       # ipv6_cidr_blocks = [aws_vpc.main_vpc.ipv6_cidr_block]
       self        = true
     }
@@ -187,7 +198,7 @@ resource "aws_default_security_group" "sg_default" {
       from_port   = 10250
       to_port     = 10252
       protocol    = "tcp"
-      cidr_blocks      = [aws_vpc.main_vpc.cidr_block]
+      cidr_blocks = [aws_vpc.main_vpc.cidr_block]
       # ipv6_cidr_blocks = [aws_vpc.main_vpc.ipv6_cidr_block]
       self        = true
     }
@@ -196,7 +207,7 @@ resource "aws_default_security_group" "sg_default" {
       from_port   = 9345
       to_port     = 9345
       protocol    = "tcp"
-      cidr_blocks      = [aws_vpc.main_vpc.cidr_block]
+      cidr_blocks = [aws_vpc.main_vpc.cidr_block]
       # ipv6_cidr_blocks = [aws_vpc.main_vpc.ipv6_cidr_block]
       self        = true
     }
@@ -205,7 +216,7 @@ resource "aws_default_security_group" "sg_default" {
       from_port   = 30000
       to_port     = 32767
       protocol    = "tcp"
-      cidr_blocks      = [aws_vpc.main_vpc.cidr_block]
+      cidr_blocks = [aws_vpc.main_vpc.cidr_block]
       # ipv6_cidr_blocks = [aws_vpc.main_vpc.ipv6_cidr_block]
       self        = true
     }
@@ -214,7 +225,7 @@ resource "aws_default_security_group" "sg_default" {
       from_port   = 30000
       to_port     = 32767
       protocol    = "udp"
-      cidr_blocks      = [aws_vpc.main_vpc.cidr_block]
+      cidr_blocks = [aws_vpc.main_vpc.cidr_block]
       # ipv6_cidr_blocks = [aws_vpc.main_vpc.ipv6_cidr_block]
       self        = true
     }
@@ -223,7 +234,7 @@ resource "aws_default_security_group" "sg_default" {
       from_port   = 179
       to_port     = 179
       protocol    = "tcp"
-      cidr_blocks      = [aws_vpc.main_vpc.cidr_block]
+      cidr_blocks = [aws_vpc.main_vpc.cidr_block]
       # ipv6_cidr_blocks = [aws_vpc.main_vpc.ipv6_cidr_block]
       self        = true
     }
@@ -244,20 +255,28 @@ resource "aws_default_security_group" "sg_default" {
       # ipv6_cidr_blocks = ["${chomp(data.http.myipv6.body)}"]
     }
     ingress {
+      description = "Inbound local 6443 for Helm provider"
+      from_port   = 6443
+      to_port     = 6443
+      protocol    = "tcp"
+      cidr_blocks = ["${chomp(data.http.myipv4.body)}/32"]
+      # ipv6_cidr_blocks = [aws_vpc.main_vpc.ipv6_cidr_block]
+    }
+    ingress {
       description = "Prometheus metrics"
       from_port   = 9796
       to_port     = 9796
       protocol    = "tcp"
-      cidr_blocks      = [aws_vpc.main_vpc.cidr_block]
+      cidr_blocks = [aws_vpc.main_vpc.cidr_block]
       # ipv6_cidr_blocks = [aws_vpc.main_vpc.ipv6_cidr_block]
       self        = true
     }
   # egress = [
     egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
     ipv6_cidr_blocks = ["::/0"]
 
   }
@@ -269,8 +288,14 @@ resource "aws_default_security_group" "sg_default" {
 
 
 resource "aws_security_group" "sg_default" {
-  name   = "${var.owner}_sg_default"
-  vpc_id = aws_vpc.main_vpc.id
+    name   = "${var.owner}_sg_default"
+    vpc_id = aws_vpc.main_vpc.id
+    tags = {
+      Owner       = var.owner
+      DoNotDelete = "true"
+      "kubernetes.io/cluster/${var.rancher_cluster_name}" : "shared"
+    }
+
     ingress {
       description = "Inbound HTTP from ALB"
       from_port   = 80
@@ -287,6 +312,24 @@ resource "aws_security_group" "sg_default" {
       protocol    = "tcp"
       cidr_blocks = ["0.0.0.0/0"]
       # security_groups = [aws_default_security_group.sg_default.id]
+      # self        = true
+    }
+    ingress {
+      description = "Inbound HTTPS from cluster cidr"
+      from_port   = 443
+      to_port     = 443
+      protocol    = "tcp"
+      cidr_blocks = [aws_vpc.main_vpc.cidr_block,"10.43.0.0/16"]
+      self        = true
+      # security_groups = [aws_default_security_group.sg_default.id]
+    }
+    ingress {
+      description = "Inbound kube-api from cluster cidr"
+      from_port   = 6443
+      to_port     = 6443
+      protocol    = "tcp"
+      cidr_blocks = ["10.43.0.0/16"]
+      # security_groups = [aws_default_security_group.sg_default.id]
     }
     ingress {
       description = "Inbound etcd from cluster nodes"
@@ -294,7 +337,7 @@ resource "aws_security_group" "sg_default" {
       to_port     = 2380
       protocol    = "tcp"
       # security_groups = [aws_default_security_group.sg_default.id]
-      cidr_blocks      = [aws_vpc.main_vpc.cidr_block]
+      cidr_blocks = [aws_vpc.main_vpc.cidr_block]
       # ipv6_cidr_blocks = [aws_vpc.main_vpc.ipv6_cidr_block]
       self        = true
     }
@@ -304,7 +347,7 @@ resource "aws_security_group" "sg_default" {
       to_port     = 6443
       protocol    = "tcp"
       # security_groups = ""
-      cidr_blocks      = [aws_vpc.main_vpc.cidr_block]
+      cidr_blocks = [aws_vpc.main_vpc.cidr_block]
       # ipv6_cidr_blocks = [aws_vpc.main_vpc.ipv6_cidr_block]
       self        = true
     }
@@ -314,7 +357,7 @@ resource "aws_security_group" "sg_default" {
       to_port     = 8472
       protocol    = "udp"
       # security_groups = ""
-      cidr_blocks      = [aws_vpc.main_vpc.cidr_block]
+      cidr_blocks = [aws_vpc.main_vpc.cidr_block]
       # ipv6_cidr_blocks = [aws_vpc.main_vpc.ipv6_cidr_block]
       self        = true
     }
@@ -323,7 +366,7 @@ resource "aws_security_group" "sg_default" {
       from_port   = 4789
       to_port     = 4789
       protocol    = "udp"
-      cidr_blocks      = [aws_vpc.main_vpc.cidr_block]
+      cidr_blocks = [aws_vpc.main_vpc.cidr_block]
       # ipv6_cidr_blocks = [aws_vpc.main_vpc.ipv6_cidr_block]
       self        = true
     }
@@ -332,7 +375,7 @@ resource "aws_security_group" "sg_default" {
       from_port   = 10250
       to_port     = 10252
       protocol    = "tcp"
-      cidr_blocks      = [aws_vpc.main_vpc.cidr_block]
+      cidr_blocks = [aws_vpc.main_vpc.cidr_block]
       # ipv6_cidr_blocks = [aws_vpc.main_vpc.ipv6_cidr_block]
       self        = true
     }
@@ -341,7 +384,7 @@ resource "aws_security_group" "sg_default" {
       from_port   = 9345
       to_port     = 9345
       protocol    = "tcp"
-      cidr_blocks      = [aws_vpc.main_vpc.cidr_block]
+      cidr_blocks = [aws_vpc.main_vpc.cidr_block]
       # ipv6_cidr_blocks = [aws_vpc.main_vpc.ipv6_cidr_block]
       self        = true
     }
@@ -350,7 +393,7 @@ resource "aws_security_group" "sg_default" {
       from_port   = 30000
       to_port     = 32767
       protocol    = "tcp"
-      cidr_blocks      = [aws_vpc.main_vpc.cidr_block]
+      cidr_blocks = [aws_vpc.main_vpc.cidr_block]
       # ipv6_cidr_blocks = [aws_vpc.main_vpc.ipv6_cidr_block]
       self        = true
     }
@@ -359,7 +402,7 @@ resource "aws_security_group" "sg_default" {
       from_port   = 30000
       to_port     = 32767
       protocol    = "udp"
-      cidr_blocks      = [aws_vpc.main_vpc.cidr_block]
+      cidr_blocks = [aws_vpc.main_vpc.cidr_block]
       # ipv6_cidr_blocks = [aws_vpc.main_vpc.ipv6_cidr_block]
       self        = true
     }
@@ -368,7 +411,7 @@ resource "aws_security_group" "sg_default" {
       from_port   = 179
       to_port     = 179
       protocol    = "tcp"
-      cidr_blocks      = [aws_vpc.main_vpc.cidr_block]
+      cidr_blocks = [aws_vpc.main_vpc.cidr_block]
       # ipv6_cidr_blocks = [aws_vpc.main_vpc.ipv6_cidr_block]
       self        = true
     }
@@ -413,9 +456,5 @@ resource "aws_security_group" "sg_default" {
     cidr_blocks = ["0.0.0.0/0"]
     ipv6_cidr_blocks = ["::/0"]
 
-  }
-  tags = {
-    Owner       = var.owner
-    "kubernetes.io/cluster/${var.rancher_cluster_name}" : "shared"
   }
 }

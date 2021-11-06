@@ -3,9 +3,7 @@
 # Install cert-manager helm chart
 resource "helm_release" "cert_manager" {
   depends_on = [
-    aws_instance.rancher_master,
-    sshcommand_command.retrieve_config,
-    local_file.kube_config_local_yaml
+    sshcommand_command.retrieve_config
   ]
   repository       = "https://charts.jetstack.io"
   name             = "cert-manager"
@@ -27,7 +25,6 @@ resource "helm_release" "rancher_server" {
   depends_on = [
     helm_release.cert_manager
   ]
-
   repository       = "https://releases.rancher.com/server-charts/stable"
   name             = "rancher"
   chart            = "rancher"

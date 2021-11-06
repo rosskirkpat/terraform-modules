@@ -11,15 +11,10 @@
 resource "sshcommand_command" "retrieve_config" {
   depends_on = [
     aws_instance.rancher_master,
-    local_file.rancher_pem_file
     ]
-  #  count      = length(aws_instance.rancher_master)
-  #  host          = aws_instance.rancher_master[0].public_ip
   host           = aws_instance.rancher_master[0].public_ip
   command        = "sudo sed \"s/127.0.0.1/$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)/g\" /etc/rancher/k3s/k3s.yaml"
-  # command        = "sudo cat /etc/rancher/k3s/k3s.yaml"
-  user           = "ec2-user"
-  # private_key = tls_private_key.rancher_ssh_key.private_key_pem
+  user           = "ubuntu"
   private_key    = local_file.rancher_pem_file.sensitive_content
   retry          = true
   retry_interval = "10s"

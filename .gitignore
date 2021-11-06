@@ -5,3 +5,5 @@
 *.tfstate.*
 .terraform*
 .archive/*
+kube_config_local.yaml
+*kubeconfig.yaml

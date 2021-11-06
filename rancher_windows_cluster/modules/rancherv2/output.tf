@@ -1,4 +1,5 @@
 
+
 ### OUTPUT 
 
 output "rancher2_local_cluster_node_ips" {
@@ -75,7 +76,15 @@ output "secure_rke2_cluster_windows_command" {
   ]
 }
 
-# output "rancher_kubeconfig" {
-#   #   value = data.external.rancher_kubeconfig.result 
-#   value = sshcommand_command.retrieve_config.result
-# }
+output "k3s_token" {
+    value = random_password.k3s_token.result
+}
+
+output "k3s_agent_token" {
+    value = random_password.k3s_agent_token.result
+}
+
+output "rancher_kubeconfig" {
+#   value = data.external.rancher_kubeconfig.result 
+    value = sshcommand_command.retrieve_config.result
+}

@@ -22,6 +22,18 @@ data "http" "myipv4" {
   url = "http://whatismyip.akamai.com/"
 }
 
+resource "random_password" "k3s_token" {
+  length           = 30
+  special          = true
+  override_special = "_%@"
+}
+
+resource "random_password" "k3s_agent_token" {
+  length           = 30
+  special          = true
+  override_special = "_%@"
+}
+
 resource "random_password" "rancher_password" {
   length           = 16
   special          = true
@@ -54,9 +66,11 @@ resource "aws_key_pair" "generated_rancher_key" {
 }
 
 resource "local_file" "rancher_pem_file" {
-  filename          = "files\\${aws_key_pair.generated_rancher_key.key_name}.pem"
+  filename = format("%s/%s", "${path.root}/keys", "${aws_key_pair.generated_rancher_key.key_name}.pem") 
+  # filename = "files\\${aws_key_pair.generated_rancher_key.key_name}.pem"
   sensitive_content = tls_private_key.rancher_ssh_key.private_key_pem
 }
+
 
 resource "aws_instance" "rancher_master" {
   count = var.instances.rancher_master.count
@@ -67,14 +81,14 @@ resource "aws_instance" "rancher_master" {
   }
 
   key_name                    = aws_key_pair.generated_rancher_key.key_name
-  ami                         = module.ami.leap-15_SP3
+  ami                         = module.ami.ubuntu-20_04
   instance_type               = var.instances.rancher_master.type
   associate_public_ip_address = "true"
   subnet_id                   = var.subnet_id
   vpc_security_group_ids      = var.default_sg
   source_dest_check           = "false"
-
-  user_data = base64encode(templatefile("${path.module}/files/user-data-rancher.yml", { k3s_version = "${var.rancher_kubernetes_version}", public_key = "${tls_private_key.rancher_ssh_key.public_key_openssh}" }))
+  user_data                   = base64encode(templatefile("${path.module}/files/user-data-rancher.yml", { k3s_version = "${var.rancher_kubernetes_version}", public_key = "${tls_private_key.rancher_ssh_key.public_key_openssh}" , k3s_agent_token = "${random_password.k3s_agent_token.result}", k3s_token = "${random_password.k3s_token.result}" } ))
+  # user_data = "${base64encode(data.template_file.cloud-config.rendered, { k3s_version = "${var.rancher_kubernetes_version}", public_key = "${tls_private_key.rancher_ssh_key.public_key_openssh}" , k3s_agent_token = "${random_password.k3s_agent_token.result}", k3s_token = "${random_password.k3s_token.result}")}"
 
   root_block_device {
     volume_size = var.instances.rancher_master.volume_size
@@ -106,14 +120,6 @@ resource "aws_security_group" "sg_kubeapi" {
       self        = true
     }
   }
-    ingress {
-      description = "Inbound local 6443 for Helm provider"
-      from_port   = 6443
-      to_port     = 6443
-      protocol    = "tcp"
-      cidr_blocks = ["${chomp(data.http.myipv4.body)}/32"]
-      # ipv6_cidr_blocks = [aws_vpc.main_vpc.ipv6_cidr_block]
-    }
     egress {
     from_port   = 0
     to_port     = 0
@@ -141,11 +147,9 @@ resource "local_file" "kube_config_local_yaml" {
 }
 
 provider "rancher2" {
-  alias    = "bootstrap"
-  insecure = true
-  api_url  = "https://${aws_instance.rancher_master[0].public_ip}.nip.io"
-  # api_url   = "https://${var.rancher-hostname}"
-  # api_url   = "https://${data.aws_instance.rancher_master.public_ip}.nip.io"
+  alias     = "bootstrap"
+  insecure  = true
+  api_url   = "https://${aws_instance.rancher_master[0].public_ip}.nip.io"
   bootstrap = true
   timeout   = "300s"
 }
@@ -163,8 +167,7 @@ resource "rancher2_bootstrap" "admin" {
 
 # Provider config for admin
 provider "rancher2" {
-  alias = "admin"
-  # api_url   = "https://${var.rancher-hostname}"
+  alias     = "admin"
   api_url   = rancher2_bootstrap.admin.url
   token_key = rancher2_bootstrap.admin.token
   insecure  = true
@@ -188,17 +191,6 @@ resource "rancher2_token" "rancher-token" {
 #   ]
 # }
 
-# resource "local_file" "kube_config_local_yaml" {
-#   filename = format("%s/%s", path.root, "kube_config_local.yaml")
-#   # content  = data.rancher2_cluster.local.kube_config
-#   # content  = rancher2_cluster_sync.wait_for_catalogs.kube_config
-#   count      = length(aws_instance.rancher_master)
-#   content    = sshcommand_command.retrieve_config.*.result[0]
-#   # depends_on = [
-#   #   helm_release.rancher_server
-#   # ]
-# }
-
 # Create a new rancher2 resource using admin provider config
 resource "rancher2_catalog" "rancher" {
   provider = rancher2.admin
@@ -219,13 +211,13 @@ resource "rancher2_app_v2" "rancher-backup" {
   chart_name = "rancher-backup"
 }
 
-resource "rancher2_cluster_sync" "wait_for_catalogs" {
-  cluster_id = "local"
-  provider   = rancher2.admin
-  # wait_alerting   = var.monitoring-feature == "1" && var.monitoring-enabled ? true : null
-  # wait_monitoring = var.monitoring-feature == "1" && var.monitoring-enabled ? true : null
-  wait_catalogs = true
-}
+# resource "rancher2_cluster_sync" "wait_for_catalogs" {
+#   cluster_id      = "local"
+#   provider        = rancher2.admin
+#   # wait_alerting   = var.monitoring-feature == "1" && var.monitoring-enabled ? true : null
+#   # wait_monitoring = var.monitoring-feature == "1" && var.monitoring-enabled ? true : null
+#   wait_catalogs   = true
+# }
 
 data "rancher2_role_template" "admin" {
   depends_on = [rancher2_catalog.rancher]
@@ -238,13 +230,14 @@ resource "rancher2_cluster_v2" "rke2_win_cluster" {
   provider = rancher2.admin
   name     = "${var.rancher_cluster_name}${random_integer.cluster_name_append.result}"
   # description = "RKE2 Windows Cluster"
-  fleet_namespace    = "fleet-default"
-  kubernetes_version = "v1.21.5+rke2r2"
+  fleet_namespace = "fleet-default"
+  kubernetes_version = "v1.21.6+rke2r1"
 }
 
 # Save kubeconfig file for interacting with the local and downstream clusters from your local machine
 
 resource "local_file" "kube_config_downstream_yaml" {
+  #   filename = format("%s/%s", path.root, "kube_config_downstream.yaml")
   filename = format("%s/%s", path.root, "${rancher2_cluster_v2.rke2_win_cluster.name}-kubeconfig.yaml")
   content  = rancher2_cluster_v2.rke2_win_cluster.kube_config
   depends_on = [
