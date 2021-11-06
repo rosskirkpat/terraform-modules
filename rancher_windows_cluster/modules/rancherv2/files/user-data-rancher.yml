@@ -1,0 +1,98 @@
+#cloud-config
+
+locale: "en_US.UTF-8"
+timezone: "America/New_York"
+
+users:
+  - default
+  - name: rancher
+    gecos: rancher
+    primary_group: rancher    
+    sudo: ALL=(ALL) NOPASSWD:ALL    
+    groups: users, admin
+    lock_passwd: false    
+    ssh_authorized_keys:
+      - ${public_key}
+      
+package_update: true
+packages:
+  - nano
+  - net-tools
+  - bash
+    
+write_files:
+  - path: /run/setup-environment.sh
+    permissions: '0755'
+    content: |
+      #!/bin/bash
+
+      ENV="/etc/environment"
+
+      # Test for RW access to $1
+      touch $ENV
+      if [ $? -ne 0 ]; then
+          echo exiting, unable to modify: $ENV
+          exit 1
+      fi
+
+      # clean environment file
+      sed -i -e '/^PUBLIC_IPV4/d' \
+          -e '/^LOCAL_IPV4/d' \
+          "$ENV"
+
+      function get_local_ip () {
+        while [ 1 ]; do
+          _out=$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)
+          if [ -z "$_out" ]; then
+            sleep 1
+          else
+            echo $_out
+            exit
+          fi
+        done
+      }
+
+      function get_public_ip () {
+        while [ 1 ]; do
+          _out=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
+          if [ -z "$_out" ]; then
+            sleep 1
+          else
+            echo $_out
+            exit
+          fi
+        done
+      }
+
+      # Echo results of IP queries to environment file
+      echo getting private ipv4 from AWS instance metadata...
+      echo PUBLIC_IPV4=$(get_public_ip) >> $ENV
+      echo getting public ipv4 from AWS instance metadata...
+      echo LOCAL_IPV4=$(get_local_ip) >> $ENV
+
+  - path: /run/set-k3s-config.sh
+    permissions: '0755'
+    content: |
+      #!/bin/bash
+      source /run/setup-environment.sh
+      source /etc/environment
+      mkdir -p /etc/rancher/k3s/
+      touch /etc/rancher/k3s/config.yaml
+      cat <<'EOF' | sed -e "s/PUBLIC/"$PUBLIC_IPV4"/g" -e "s/LOCAL/"$LOCAL_IPV4"/g" > /etc/rancher/k3s/config.yaml
+      write-kubeconfig-mode: "0644"
+      node-ip: "LOCAL"
+      tls-san:
+        - "PUBLIC.nip.io"
+        - "PUBLIC"
+      token: "${k3s_token}"
+      agent-token: "${k3s_agent_token}"
+      disable-cloud-controller: true
+      EOF
+
+runcmd:
+  - bash /run/set-k3s-config.sh
+  - sudo systemctl disable --now firewalld
+  - curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION=${k3s_version} sh \-
+  
+
+final_message: "The system is finally up, after $UPTIME seconds"

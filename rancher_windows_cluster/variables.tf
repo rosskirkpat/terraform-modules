@@ -1,7 +1,7 @@
 variable "aws_region" {
   type        = string
   description = "AWS region used for all resources"
-  default     = "us-west-2"
+  default     = "us-east-1"
 }
 
 variable "aws_profile_name" {
@@ -69,15 +69,15 @@ variable "instances" {
 }
 
 # rancher2 provider variables
-variable "rancher_api_endpoint" {
-  type        = string
-  description = "Endpoint for the Rancher API"
-}
+# variable "rancher_api_endpoint" {
+#   type        = string
+#   description = "Endpoint for the Rancher API"
+# }
 
-variable "rancher_api_token" {
-  type        = string
-  description = "API Token to access the Rancher API"
-}
+# variable "rancher_api_token" {
+#   type        = string
+#   description = "API Token to access the Rancher API"
+# }
 
 variable "rancher_cluster_name" {
   type        = string
