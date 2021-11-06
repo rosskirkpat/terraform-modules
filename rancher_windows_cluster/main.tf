@@ -16,7 +16,7 @@ resource "tls_private_key" "ssh_key" {
 }
 
 resource "aws_key_pair" "generated_key" {
-  key_name   = "terraform-downstream-cluster-key-pair-${random_integer.cluster_name_append.result}"
+  key_name   = "tf-downstream-${var.rancher_cluster_name}${random_integer.cluster_name_append.result}"
   public_key = tls_private_key.ssh_key.public_key_openssh
 }
 

@@ -362,6 +362,15 @@ resource "aws_security_group" "sg_default" {
       self        = true
     }
     ingress {
+      description = "Inbound Typha for Calico Felix from cluster nodes"
+      from_port   = 5473
+      to_port     = 5473
+      protocol    = "tcp"
+      cidr_blocks = [aws_vpc.main_vpc.cidr_block]
+      self        = true
+    }
+
+    ingress {
       description = "Inbound kubelet for Canal/Flannel VXLAN from cluster nodes"
       from_port   = 10250
       to_port     = 10252
