@@ -2,6 +2,9 @@
 
 # Install cert-manager helm chart
 resource "helm_release" "cert_manager" {
+  depends_on = [
+    sshcommand_command.retrieve_config
+  ]
   repository       = "https://charts.jetstack.io"
   name             = "cert-manager"
   chart            = "cert-manager"
@@ -20,10 +23,8 @@ resource "helm_release" "cert_manager" {
 # Install Rancher helm chart
 resource "helm_release" "rancher_server" {
   depends_on = [
-    helm_release.cert_manager,
-    sshcommand_command.retrieve_config
-    ]
-
+    helm_release.cert_manager
+  ]
   repository       = "https://releases.rancher.com/server-charts/stable"
   name             = "rancher"
   chart            = "rancher"
@@ -34,12 +35,12 @@ resource "helm_release" "rancher_server" {
 
   set {
     name  = "hostname"
-    value = "https://${aws_instance.rancher_master[0].public_ip}.nip.io"
+    value = "${aws_instance.rancher_master[0].public_ip}.nip.io"
   }
 
   set {
     name  = "replicas"
-    value = "3"
+    value = "1"
   }
 
   set {

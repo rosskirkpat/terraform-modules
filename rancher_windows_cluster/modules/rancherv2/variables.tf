@@ -9,7 +9,7 @@ variable "cert_manager_version" {
 variable "rancher_kubernetes_version" {
   type        = string
   description = "Kubernetes version to use for Rancher server cluster"
-  default     = "v1.21.5+k3s2"
+  default     = "v1.21.6+k3s1"
 }
 
 variable "rancher_version" {
@@ -69,4 +69,7 @@ variable "instances" {
       volume_size   = 150
     }
   }
+}
+
+variable "vpc_id" {
 }
