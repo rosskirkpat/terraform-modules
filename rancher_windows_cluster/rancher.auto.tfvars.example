@@ -1,0 +1,2 @@
+rancher_api_token = "token-xxxxx:yyyyzzzz"
+rancher_api_endpoint = "https://<RANCHER_URL>>"

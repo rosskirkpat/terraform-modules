@@ -2,6 +2,11 @@
 
 # Install cert-manager helm chart
 resource "helm_release" "cert_manager" {
+  depends_on = [
+    aws_instance.rancher_master,
+    sshcommand_command.retrieve_config,
+    local_file.kube_config_local_yaml
+  ]
   repository       = "https://charts.jetstack.io"
   name             = "cert-manager"
   chart            = "cert-manager"
@@ -20,9 +25,8 @@ resource "helm_release" "cert_manager" {
 # Install Rancher helm chart
 resource "helm_release" "rancher_server" {
   depends_on = [
-    helm_release.cert_manager,
-    sshcommand_command.retrieve_config
-    ]
+    helm_release.cert_manager
+  ]
 
   repository       = "https://releases.rancher.com/server-charts/stable"
   name             = "rancher"
@@ -31,19 +35,21 @@ resource "helm_release" "rancher_server" {
   namespace        = "cattle-system"
   create_namespace = true
   wait             = true
+#   wait_for_jobs    = true
+#   reuse_values     = true
+  timeout          = 300
 
   set {
     name  = "hostname"
-    value = "https://${aws_instance.rancher_master[0].public_ip}.nip.io"
+    value = "${aws_instance.rancher_master[0].public_ip}.nip.io"
   }
 
   set {
     name  = "replicas"
-    value = "3"
+    value = "1"
   }
-
   set {
-    name  = "bootstrapPassword"
-    value = "admin" # TODO: change this once the terraform provider has been updated with the new pw bootstrap logic
+    name = "bootstrapPassword"
+    value = "admin"
   }
 }

@@ -26,16 +26,43 @@ resource "local_file" "pem_file" {
 }
 
 # Load in the modules
-module "aws_vpc_create" {
-  source               = "./modules/aws_vpc_create"
+module "aws_vpc" {
+  source               = "./modules/aws_vpc"
   vpc_name             = var.vpc_name
   owner                = var.owner
   rancher_cluster_name = "${var.rancher_cluster_name}${random_integer.cluster_name_append.result}"
   vpc_domain_name      = var.vpc_domain_name
 }
 
-module "ami" {
-  source = "./modules/ami"
+module "aws_ami" {
+  source = "./modules/aws_ami"
+}
+
+module "aws_acm" {
+  source = "./modules/aws_acm"
+}
+
+module "aws_lb" {
+  source = "./modules/aws_lb"
+}
+
+
+module "aws_r53" {
+  source = "./modules/aws_r53"
+}
+
+# for rancher on k3s w/ external rds
+module "aws_rds_backend" {
+  source = "./modules/aws_rds_backend"
+}
+
+module "aws_security" {
+  source = "./modules/aws_security"
+}
+
+# for downstream k3s w/ external rds
+module "aws_rds" {
+  source = "./modules/aws_rds"
 }
 
 module "rancherv2" {
@@ -45,8 +72,9 @@ module "rancherv2" {
   rancher_cluster_name = "${var.rancher_cluster_name}${random_integer.cluster_name_append.result}"
   # vpc_domain_name      = var.vpc_domain_name
   prefix               = var.prefix
-  subnet_id            = module.aws_vpc_create.subnet_ids[0]
-  default_sg           = [module.aws_vpc_create.default_security_group_id]
+  subnet_id            = module.aws_vpc.subnet_ids[0]
+  default_sg           = [module.aws_vpc.default_security_group_id]
+  vpc_id               = module.aws_vpc.vpc_id
   # access_key = var.aws_access_key
   # secret_key = var.aws_secret_key
   # region     = var.aws_region
@@ -75,14 +103,14 @@ resource "aws_instance" "linux_master" {
   }
 
   key_name                    = aws_key_pair.generated_key.key_name
-  ami                         = module.ami.leap-15_SP3
+  ami                         = module.aws_ami.leap-15_SP3
   instance_type               = var.instances.linux_master.type
   associate_public_ip_address = "true"
-  subnet_id                   = module.aws_vpc_create.subnet_ids[0]
-  vpc_security_group_ids      = [module.aws_vpc_create.default_security_group_id]
+  subnet_id                   = module.aws_vpc.subnet_ids[0]
+  vpc_security_group_ids      = [module.aws_vpc.default_security_group_id]
   source_dest_check           = "false"
   # user_data                   = base64encode(templatefile("files/user-data-linux.yml", { cluster_registration = format("%s%s","${rancher2_cluster_v2.rke2_win_cluster.cluster_registration_token[0].insecure_node_command}"," --etcd --controlplane") }))
-  user_data                   = base64encode(templatefile("files/user-data-linux.yml", { cluster_registration = format("%s%s",module.rancherv2.rke2_cluster_command," --etcd --controlplane") }))
+  user_data                   = base64encode(templatefile("files/user-data-linux.yml", { cluster_registration = format("%s%s",module.rancherv2.insecure_rke2_cluster_command," --etcd --controlplane") }))
 
 
 
@@ -105,14 +133,14 @@ resource "aws_instance" "linux_worker" {
   }
 
   key_name                    = aws_key_pair.generated_key.key_name
-  ami                         = module.ami.leap-15_SP3
+  ami                         = module.aws_ami.leap-15_SP3
   instance_type		            = var.instances.linux_worker.type
   associate_public_ip_address = "true"
-  subnet_id                   = module.aws_vpc_create.subnet_ids[0]
-  vpc_security_group_ids      = [module.aws_vpc_create.default_security_group_id]
+  subnet_id                   = module.aws_vpc.subnet_ids[0]
+  vpc_security_group_ids      = [module.aws_vpc.default_security_group_id]
   source_dest_check           = "false"
   # user_data                   = base64encode(templatefile("files/user-data-linux.yml", { cluster_registration = format("%s%s","${rancher2_cluster_v2.rke2_win_cluster.cluster_registration_token[0].insecure_node_command}"," --worker") }))
-  user_data                   = base64encode(templatefile("files/user-data-linux.yml", { cluster_registration = format("%s%s",module.rancherv2.rke2_cluster_command," --worker") }))
+  user_data                   = base64encode(templatefile("files/user-data-linux.yml", { cluster_registration = format("%s%s",module.rancherv2.insecure_rke2_cluster_command," --worker") }))
 
 
   root_block_device {
@@ -133,15 +161,15 @@ resource "aws_instance" "windows_worker" {
   }
 
   key_name                    = aws_key_pair.generated_key.key_name
-  ami                         = module.ami.windows-2019
+  ami                         = module.aws_ami.windows-2019
   instance_type		            = var.instances.windows_worker.type
   associate_public_ip_address = "true"
-  subnet_id                   = module.aws_vpc_create.subnet_ids[0]
-  vpc_security_group_ids      = [module.aws_vpc_create.default_security_group_id]
+  subnet_id                   = module.aws_vpc.subnet_ids[0]
+  vpc_security_group_ids      = [module.aws_vpc.default_security_group_id]
   get_password_data           = "true"
   source_dest_check           = "false"
   # user_data                   = base64encode(templatefile("files/user-data-windows.yml", { cluster_registration = format("%s","${rancher2_cluster_v2.rke2_win_cluster.cluster_registration_token[0].insecure_windows_node_command}") }))
-  user_data                   =  base64encode(templatefile("files/user-data-windows.yml", { cluster_registration = format("%s",module.rancherv2.rke2_cluster_windows_command)}))
+  user_data                   =  base64encode(templatefile("files/user-data-windows.yml", { cluster_registration = format("%s",module.rancherv2.insecure_rke2_cluster_windows_command)}))
 
   root_block_device {
     volume_size = var.instances.windows_worker.volume_size

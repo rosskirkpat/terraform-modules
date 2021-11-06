@@ -53,20 +53,23 @@ variable "default_sg" {
 variable "subnet_id" {
 }
 
+variable "vpc_id" {
+}
+
 #ec2 instances
 variable "instances" {
   type = map(object({
-    count         = number
-    type          = string
-    ssh_user      = string
-    volume_size   = number
+    count       = number
+    type        = string
+    ssh_user    = string
+    volume_size = number
   }))
   default = {
     rancher_master = {
-      count         = 3
-      type          = "m5.xlarge"
-      ssh_user      = "rancher"
-      volume_size   = 150
+      count       = 3
+      type        = "m5.xlarge"
+      ssh_user    = "rancher"
+      volume_size = 150
     }
   }
 }
